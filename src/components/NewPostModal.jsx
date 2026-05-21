@@ -3,7 +3,7 @@ import { addDoc, collection, doc, getDoc, updateDoc, serverTimestamp, arrayUnion
 import { db } from '../firebase'
 import { useAuth } from '../hooks/useAuth'
 import { compressImage } from '../utils/compress'
-import { X, ImagePlus, Loader2 } from 'lucide-react'
+import { X, ImagePlus, Loader2, Globe, Users } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 
@@ -15,12 +15,13 @@ const HABIT_OPTIONS = [
   { id: 'noAlcohol', label: '🚫 Sober' },
 ]
 
-export default function NewPostModal({ onClose }) {
+export default function NewPostModal({ onClose, userSquadId = null }) {
   const { user } = useAuth()
   const [image, setImage] = useState(null)
   const [preview, setPreview] = useState(null)
   const [caption, setCaption] = useState('')
   const [habitTag, setHabitTag] = useState(null)
+  const [audience, setAudience] = useState('public')
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef()
 
@@ -48,6 +49,8 @@ export default function NewPostModal({ onClose }) {
         imageData,
         caption: caption.trim(),
         habitTag,
+        audience,
+        ...(audience === 'squad' && userSquadId ? { squadId: userSquadId } : {}),
         reactFire: [], reactMuscle: [], reactParty: [], reactHeart: [],
         commentCount: 0,
         createdAt: serverTimestamp(),
@@ -165,6 +168,37 @@ export default function NewPostModal({ onClose }) {
                   {opt.label}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Audience selector */}
+          <div>
+            <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2.5">
+              Who can see this?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAudience('public')}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border text-sm font-semibold transition-all ${
+                  audience === 'public'
+                    ? 'bg-violet-600 border-violet-500 text-white'
+                    : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                }`}
+              >
+                <Globe size={15} /> Everyone
+              </button>
+              <button
+                onClick={() => userSquadId && setAudience('squad')}
+                disabled={!userSquadId}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border text-sm font-semibold transition-all ${
+                  audience === 'squad'
+                    ? 'bg-violet-600 border-violet-500 text-white'
+                    : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                } disabled:opacity-35 disabled:cursor-not-allowed`}
+              >
+                <Users size={15} /> Squad only
+                {!userSquadId && <span className="text-xs font-normal opacity-60">(join a squad first)</span>}
+              </button>
             </div>
           </div>
 
