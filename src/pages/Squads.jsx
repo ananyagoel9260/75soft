@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   collection, doc, getDoc, getDocs, query, where,
   addDoc, updateDoc, onSnapshot, serverTimestamp,
-  arrayUnion, arrayRemove,
+  arrayUnion, arrayRemove, deleteField,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../hooks/useAuth'
@@ -96,9 +96,11 @@ export default function Squads() {
       })
       await updateDoc(doc(db, 'users', user.uid), { squadId: ref.id })
       toast.success('Squad created! 🎉')
+      setSquadName('')
       setView('home')
-    } catch {
-      toast.error('Failed to create squad')
+    } catch (err) {
+      console.error('Create squad error:', err)
+      toast.error(err?.message || 'Failed to create squad — check Firestore rules are deployed')
     } finally {
       setBusy(false)
     }
@@ -111,17 +113,25 @@ export default function Squads() {
     try {
       const q = query(collection(db, 'squads'), where('code', '==', code))
       const snap = await getDocs(q)
-      if (snap.empty) { toast.error('No squad with that code'); return }
+      if (snap.empty) {
+        toast.error('No squad found with that code')
+        setBusy(false)
+        return
+      }
       const squadDoc = snap.docs[0]
       if (squadDoc.data().members?.includes(user.uid)) {
-        toast("You're already in this squad!"); return
+        toast("You're already in this squad!")
+        setBusy(false)
+        return
       }
       await updateDoc(doc(db, 'squads', squadDoc.id), { members: arrayUnion(user.uid) })
       await updateDoc(doc(db, 'users', user.uid), { squadId: squadDoc.id })
       toast.success(`Joined ${squadDoc.data().name}! 🎉`)
+      setJoinCode('')
       setView('home')
-    } catch {
-      toast.error('Failed to join squad')
+    } catch (err) {
+      console.error('Join squad error:', err)
+      toast.error(err?.message || 'Failed to join — check the code and try again')
     } finally {
       setBusy(false)
     }
@@ -132,9 +142,12 @@ export default function Squads() {
     setBusy(true)
     try {
       await updateDoc(doc(db, 'squads', squad.id), { members: arrayRemove(user.uid) })
-      await updateDoc(doc(db, 'users', user.uid), { squadId: null })
+      await updateDoc(doc(db, 'users', user.uid), { squadId: deleteField() })
+      setSquad(null)
+      setMembers([])
       toast.success('Left the squad')
-    } catch {
+    } catch (err) {
+      console.error('Leave squad error:', err)
       toast.error('Failed to leave')
     } finally {
       setBusy(false)
