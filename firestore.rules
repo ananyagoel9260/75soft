@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /logs/{logId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == request.resource.data.uid;
+    }
+
+    match /squads/{squadId} {
+      allow read: if request.auth != null;
+      // Anyone signed in can create a squad
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.createdBy;
+      // Members can update (join/leave updates the members array)
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.createdBy ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members'])
+      );
+      allow delete: if request.auth != null && request.auth.uid == resource.data.createdBy;
+    }
+
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+      allow update: if request.auth != null && (
+        request.auth.uid == resource.data.uid ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['reactFire', 'reactMuscle', 'reactParty', 'reactHeart', 'commentCount'])
+      );
+      allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+        allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+      }
+    }
+
+  }
+}
