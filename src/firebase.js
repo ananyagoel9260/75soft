@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, setPersistence, indexedDBLocalPersistence, browserLocalStoragePersistence } from 'firebase/auth'
+import { getAuth, GoogleAuthProvider, setPersistence, indexedDBLocalPersistence, browserLocalPersistence } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -25,7 +25,7 @@ if (isConfigured) {
   // Use IndexedDB persistence so auth survives on iOS PWA standalone mode
   // Falls back to localStorage if IndexedDB isn't available
   setPersistence(auth, indexedDBLocalPersistence).catch(() =>
-    setPersistence(auth, browserLocalStoragePersistence).catch(() => {})
+    setPersistence(auth, browserLocalPersistence).catch(() => {})
   )
 }
 
